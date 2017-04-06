@@ -12,6 +12,8 @@ import MBProgressHUD
 // Main ViewController
 class RepoResultsViewController: UIViewController {
 
+    @IBOutlet weak var tableView: UITableView!
+    
     var searchBar: UISearchBar!
     var searchSettings = GithubRepoSearchSettings()
 
@@ -28,6 +30,12 @@ class RepoResultsViewController: UIViewController {
         searchBar.sizeToFit()
         navigationItem.titleView = searchBar
 
+        tableView.dataSource = self
+        tableView.delegate = self
+        
+        tableView.rowHeight = UITableViewAutomaticDimension
+        tableView.estimatedRowHeight = 300
+        
         // Perform the first search when the view controller first loads
         doSearch()
     }
@@ -40,11 +48,16 @@ class RepoResultsViewController: UIViewController {
         // Perform request to GitHub API to get the list of repositories
         GithubRepo.fetchRepos(searchSettings, successCallback: { (newRepos) -> Void in
 
+            self.repos = []
+            
             // Print the returned repositories to the output window
             for repo in newRepos {
                 print(repo)
+                self.repos.append(repo)
             }   
 
+            self.tableView.reloadData()
+            
             MBProgressHUD.hide(for: self.view, animated: true)
             }, error: { (error) -> Void in
                 print(error as Any)
@@ -74,5 +87,22 @@ extension RepoResultsViewController: UISearchBarDelegate {
         searchSettings.searchString = searchBar.text
         searchBar.resignFirstResponder()
         doSearch()
+    }
+}
+
+extension RepoResultsViewController: UITableViewDataSource, UITableViewDelegate {
+    func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        if let repos = repos {
+            return repos.count
+        }
+        else {
+            return 0
+        }
+    }
+    
+    func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "RepoTableViewCell", for: indexPath) as! RepoTableViewCell
+        cell.repos = repos[indexPath.row]
+        return cell
     }
 }
